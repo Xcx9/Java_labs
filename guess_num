@@ -1,0 +1,207 @@
+package com.miet.mp40.kuznetsov.lab1;
+
+import java.util.Scanner;
+
+/**
+ * Программа для угадывания числа, загаданного пользователем, в диапазоне от 1 до 100.
+ * Использует алгоритм бинарного поиска и построена по архитектуре MVC.
+ * 
+ * @author Ivanov
+ * @version 1.0
+ */
+public class NumberGuesser {
+
+    // --- Model (Модель) ---
+    /**
+     * Класс, хранящий состояние игры и содержащий логику угадывания.
+     */
+    static class GameModel {
+        private int lowerBound;
+        private int upperBound;
+        private int guess;
+        private int attempts;
+        private boolean isCheating;
+
+        /**
+         * Конструктор модели. Инициализирует начальный диапазон (1-100).
+         */
+        public GameModel() {
+            lowerBound = 1;
+            upperBound = 100;
+            attempts = 0;
+            isCheating = false;
+        }
+
+        /**
+         * Вычисляет следующее предположение на основе бинарного поиска.
+         * 
+         * @return новое предположение (середина текущего диапазона)
+         */
+        public int makeGuess() {
+            guess = lowerBound + (upperBound - lowerBound) / 2;
+            attempts++;
+            return guess;
+        }
+
+        /**
+         * Обновляет диапазон для поиска на основе ответа пользователя.
+         * 
+         * @param userAnswer ответ пользователя: '>', '<' или '='
+         * @throws IllegalArgumentException если ответ противоречит предыдущим
+         *                                  (обнаружена попытка обмана)
+         */
+        public void updateBounds(char userAnswer) throws IllegalArgumentException {
+            int previousGuess = guess;
+
+            if (userAnswer == '>') {
+                lowerBound = guess + 1;
+            } else if (userAnswer == '<') {
+                upperBound = guess - 1;
+            } else if (userAnswer == '=') {
+                // Игра завершена, границы не важны
+                return;
+            }
+
+            // Проверка на обман: если границы стали невалидными,
+            // значит пользователь дал противоречивый ответ
+            if (lowerBound > upperBound) {
+                isCheating = true;
+                throw new IllegalArgumentException("Не могу угадать! Вы противоречите своим предыдущим ответам. Вы загадали " + previousGuess + "?");
+            }
+        }
+
+        public int getGuess() {
+            return guess;
+        }
+
+        public int getAttempts() {
+            return attempts;
+        }
+
+        public boolean isCheating() {
+            return isCheating;
+        }
+
+        public boolean isGameOver() {
+            return (lowerBound == upperBound || isCheating);
+        }
+    }
+
+    // --- View (Представление) ---
+    /**
+     * Класс для ввода и вывода данных.
+     */
+    static class GameView {
+        private Scanner scanner;
+
+        public GameView() {
+            scanner = new Scanner(System.in);
+        }
+
+        /**
+         * Выводит вопрос с текущим предположением программы.
+         * 
+         * @param guess текущее предположение программы
+         */
+        public void showGuess(int guess) {
+            System.out.print("Ваше число " + guess + "? (Введите '>', если ваше число больше, '<' - если меньше, '=' - если угадал): ");
+        }
+
+        /**
+         * Считывает и проверяет ответ пользователя.
+         * 
+         * @return корректный символ ответа: '>', '<' или '='
+         */
+        public char getInput() {
+            while (true) {
+                try {
+                    String input = scanner.nextLine().trim();
+                    if (input.length() != 1) {
+                        throw new IllegalArgumentException();
+                    }
+                    char answer = input.charAt(0);
+                    if (answer == '>' || answer == '<' || answer == '=') {
+                        return answer;
+                    } else {
+                        throw new IllegalArgumentException();
+                    }
+                } catch (IllegalArgumentException e) {
+                    System.out.print("Неверный ввод. Пожалуйста, введите '>', '<' или '=': ");
+                }
+            }
+        }
+
+        /**
+         * Выводит сообщение об успешном завершении игры.
+         * 
+         * @param guess    угаданное число
+         * @param attempts количество попыток
+         */
+        public void showSuccess(int guess, int attempts) {
+            System.out.println("Ура! Я угадал ваше число " + guess + " за " + attempts + " попыток.");
+        }
+
+        /**
+         * Выводит сообщение об обнаружении обмана.
+         * 
+         * @param message текст сообщения об ошибке
+         */
+        public void showCheatMessage(String message) {
+            System.out.println(message);
+        }
+    }
+
+    // --- Controller (Контроллер) ---
+    /**
+     * Класс, управляющий процессом игры, связывает Model и View.
+     */
+    static class GameController {
+        private GameModel model;
+        private GameView view;
+
+        public GameController(GameModel model, GameView view) {
+            this.model = model;
+            this.view = view;
+        }
+
+        /**
+         * Запускает основной цикл игры.
+         */
+        public void startGame() {
+            System.out.println("Загадайте число от 1 до 100, а я попробую его угадать!");
+
+            while (!model.isGameOver()) {
+                int currentGuess = model.makeGuess();
+                view.showGuess(currentGuess);
+                char userAnswer = view.getInput();
+
+                try {
+                    model.updateBounds(userAnswer);
+                    // Если пользователь подтвердил угадывание
+                    if (userAnswer == '=') {
+                        view.showSuccess(currentGuess, model.getAttempts());
+                        break;
+                    }
+                } catch (IllegalArgumentException e) {
+                    // Было обнаружено противоречие (обман)
+                    view.showCheatMessage(e.getMessage());
+                    break;
+                }
+            }
+        }
+    }
+
+    // --- Точка входа в программу (main) ---
+    /**
+     * Главный метод программы. Создает компоненты MVC и запускает игру.
+     * 
+     * @param args аргументы командной строки (не используются)
+     */
+    public static void main(String[] args) {
+        GameModel model = new GameModel();
+        GameView view = new GameView();
+        GameController controller = new GameController(model, view);
+
+        controller.startGame();
+    }
+}
