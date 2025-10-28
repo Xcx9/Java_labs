@@ -1,0 +1,257 @@
+import java.util.*;
+
+// Класс Предмет
+class Subject {
+    private String name;
+    private Teacher teacher;
+    
+    public Subject(String name, Teacher teacher) {
+        this.name = name;
+        this.teacher = teacher;
+    }
+    
+    public String getName() { return name; }
+    public Teacher getTeacher() { return teacher; }
+    
+    @Override
+    public String toString() {
+        return "Предмет: " + name + ", Преподаватель: " + teacher.getName();
+    }
+}
+
+// Класс Преподаватель
+class Teacher {
+    private String name;
+    private int age;
+    private String sex;
+    private Subject subject;
+    
+    public Teacher(String name, int age, String sex, Subject subject) {
+        this.name = name;
+        this.age = age;
+        this.sex = sex;
+        this.subject = subject;
+    }
+    
+    public String getName() { return name; }
+    public int getAge() { return age; }
+    public String getSex() { return sex; }
+    public Subject getSubject() { return subject; }
+    
+    // Метод для выставления оценки студенту
+    public void giveGrade(Student student, int grade) {
+        if (grade >= 1 && grade <= 5) {
+            student.addGrade(this, grade);
+        }
+    }
+    
+    @Override
+    public String toString() {
+        return "Преподаватель: " + name + ", Возраст: " + age + 
+               ", Пол: " + sex + ", " + subject;
+    }
+}
+
+// Класс Студент
+class Student {
+    private String name;
+    private int age;
+    private String sex;
+    private Map<Teacher, List<Integer>> grades;
+    private double averageGrade;
+    private int premium;
+    
+    public Student(String name, int age, String sex) {
+        this.name = name;
+        this.age = age;
+        this.sex = sex;
+        this.grades = new HashMap<>();
+        this.averageGrade = 0.0;
+        this.premium = 0;
+    }
+    
+    public String getName() { return name; }
+    public int getAge() { return age; }
+    public String getSex() { return sex; }
+    public double getAverageGrade() { return averageGrade; }
+    public int getPremium() { return premium; }
+    
+    public void addGrade(Teacher teacher, int grade) {
+        grades.putIfAbsent(teacher, new ArrayList<>());
+        grades.get(teacher).add(grade);
+        calculateAverageGrade();
+    }
+    
+    private void calculateAverageGrade() {
+        double sum = 0;
+        int count = 0;
+        for (List<Integer> teacherGrades : grades.values()) {
+            for (int grade : teacherGrades) {
+                sum += grade;
+                count++;
+            }
+        }
+        averageGrade = count > 0 ? sum / count : 0.0;
+    }
+    
+    public void setPremium(int premium) {
+        this.premium = premium;
+    }
+    
+    @Override
+    public String toString() {
+        return "Студент: " + name + ", Возраст: " + age + 
+               ", Пол: " + sex + ", Средний балл: " + 
+               String.format("%.2f", averageGrade) + 
+               ", Премиальные: " + premium + " руб.";
+    }
+}
+
+// Класс Родитель
+class Parent {
+    private String name;
+    private int age;
+    private String sex;
+    private List<Student> children;
+    private String mood;
+    private int totalPremiumPaid;
+    
+    public Parent(String name, int age, String sex) {
+        this.name = name;
+        this.age = age;
+        this.sex = sex;
+        this.children = new ArrayList<>();
+        this.mood = "нейтральный";
+        this.totalPremiumPaid = 0;
+    }
+    
+    public void addChild(Student student) {
+        children.add(student);
+    }
+    
+    // Метод для определения настроения и выплаты премиальных
+    public void checkChildrenPerformance() {
+        totalPremiumPaid = 0;
+        for (Student child : children) {
+            double avg = child.getAverageGrade();
+            if (avg >= 4.6 && avg <= 5.0) {
+                mood = "радостный";
+                child.setPremium(10000);
+                totalPremiumPaid += 10000;
+            } else if (avg >= 4.0 && avg < 4.6) {
+                mood = "удовлетворенный";
+                child.setPremium(5000);
+                totalPremiumPaid += 5000;
+            } else if (avg >= 3.0 && avg < 4.0) {
+                mood = "хмурый";
+                child.setPremium(0);
+            } else {
+                mood = "расстроенный";
+                child.setPremium(0);
+            }
+        }
+    }
+    
+    @Override
+    public String toString() {
+        StringBuilder childrenNames = new StringBuilder();
+        for (Student child : children) {
+            childrenNames.append(child.getName()).append(", ");
+        }
+        if (childrenNames.length() > 0) {
+            childrenNames.setLength(childrenNames.length() - 2);
+        }
+        
+        return "Родитель: " + name + ", Возраст: " + age + 
+               ", Пол: " + sex + ", Настроение: " + mood + 
+               ", Дети: " + childrenNames.toString() + 
+               ", Выплачено премиальных: " + totalPremiumPaid + " руб.";
+    }
+}
+
+// Демонстрационный класс
+public class UniversityDemo {
+    public static void main(String[] args) {
+        // Создаем преподавателей и предметы
+        Teacher teacher1 = new Teacher("Иван Петров", 45, "мужской", 
+                                      new Subject("Математика", null));
+        Teacher teacher2 = new Teacher("Мария Сидорова", 38, "женский", 
+                                      new Subject("Физика", null));
+        Teacher teacher3 = new Teacher("Алексей Козлов", 50, "мужской", 
+                                      new Subject("Информатика", null));
+        Teacher teacher4 = new Teacher("Елена Новикова", 42, "женский", 
+                                      new Subject("Химия", null));
+        Teacher teacher5 = new Teacher("Дмитрий Волков", 47, "мужской", 
+                                      new Subject("История", null));
+        
+        // Обновляем предметы с правильными ссылками на преподавателей
+        teacher1 = new Teacher("Иван Петров", 45, "мужской", 
+                              new Subject("Математика", teacher1));
+        teacher2 = new Teacher("Мария Сидорова", 38, "женский", 
+                              new Subject("Физика", teacher2));
+        teacher3 = new Teacher("Алексей Козлов", 50, "мужской", 
+                              new Subject("Информатика", teacher3));
+        teacher4 = new Teacher("Елена Новикова", 42, "женский", 
+                              new Subject("Химия", teacher4));
+        teacher5 = new Teacher("Дмитрий Волков", 47, "мужской", 
+                              new Subject("История", teacher5));
+        
+        Teacher[] teachers = {teacher1, teacher2, teacher3, teacher4, teacher5};
+        
+        // Создаем студентов
+        Student[] students = new Student[10];
+        students[0] = new Student("Андрей Клочков", 20, "мужской");
+        students[1] = new Student("Екатерина Смирнова", 19, "женский");
+        students[2] = new Student("Михаил Иванов", 21, "мужской");
+        students[3] = new Student("Анна Кузнецова", 20, "женский");
+        students[4] = new Student("Сергей Попов", 22, "мужской");
+        students[5] = new Student("Ольга Васильева", 19, "женский");
+        students[6] = new Student("Денис Петров", 20, "мужской");
+        students[7] = new Student("Наталья Морозова", 21, "женский");
+        students[8] = new Student("Александр Новиков", 20, "мужской");
+        students[9] = new Student("Ирина Федорова", 19, "женский");
+        
+        // Создаем родителей и связываем со студентами
+        Parent parent1 = new Parent("Ольга Клочкова", 45, "женский");
+        parent1.addChild(students[0]);
+        
+        Parent parent2 = new Parent("Сергей Смирнов", 50, "мужской");
+        parent2.addChild(students[1]);
+        
+        Parent[] parents = {parent1, parent2};
+        
+        // Преподаватели выставляют оценки
+        Random random = new Random();
+        for (Teacher teacher : teachers) {
+            for (Student student : students) {
+                // Каждый преподаватель выставляет 10 оценок каждому студенту
+                for (int i = 0; i < 10; i++) {
+                    int grade = random.nextInt(3) + 3; // Оценки от 3 до 5
+                    teacher.giveGrade(student, grade);
+                }
+            }
+        }
+        
+        // Родители проверяют успеваемость
+        for (Parent parent : parents) {
+            parent.checkChildrenPerformance();
+        }
+        
+        // Вывод результатов
+        System.out.println("=== РЕЗУЛЬТАТЫ ОБУЧЕНИЯ ===");
+        System.out.println("\n--- СТУДЕНТЫ ---");
+        for (Student student : students) {
+            System.out.println(student);
+        }
+        
+        System.out.println("\n--- ПРЕПОДАВАТЕЛИ ---");
+        for (Teacher teacher : teachers) {
+            System.out.println(teacher);
+        }
+        
+        System.out.println("\n--- РОДИТЕЛИ ---");
+        for (Parent parent : parents) {
+            System.out.println(parent);
+        }
+    }
+}
