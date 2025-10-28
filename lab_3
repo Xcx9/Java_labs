@@ -1,0 +1,224 @@
+import java.util.*;
+import java.io.*;
+
+public class CollectionPerformanceTest {
+    private static ErrMsgLog errorLogger;
+    
+    public static void main(String[] args) {
+        try {
+            errorLogger = new ErrMsgLog();
+            
+            // Тестируем ArrayList
+            testArrayList(10);
+            testArrayList(100);
+            testArrayList(1000);
+            testArrayList(10000);
+            testArrayList(100000);
+            
+            // Тестируем HashMap
+            testHashMap(10);
+            testHashMap(100);
+            testHashMap(1000);
+            testHashMap(10000);
+            testHashMap(100000);
+            
+        } catch (Exception e) {
+            System.err.println("Ошибка: " + e.getMessage());
+        }
+    }
+    
+    private static void testArrayList(int size) {
+        System.out.println("\n=== ТЕСТ ARRAYLIST РАЗМЕР " + size + " ===");
+        
+        ArrayList<Student> list = new ArrayList<>();
+        long startTime, endTime;
+        long totalAddTime = 0;
+        long totalRemoveTime = 0;
+        long totalSetTime = 0;
+        
+        int addCount = 0;
+        int removeCount = 0;
+        int setCount = 0;
+        
+        // Операции добавления
+        for (int i = 0; i < size; i++) {
+            startTime = System.nanoTime();
+            Student student = new Student("Студент " + i, 18 + i % 5, i % 2 == 0 ? "мужской" : "женский");
+            list.add(student);
+            endTime = System.nanoTime();
+            
+            long operationTime = endTime - startTime;
+            totalAddTime += operationTime;
+            addCount++;
+            
+            System.out.println("add, ID = " + i + ", " + operationTime);
+        }
+        
+        // Операции изменения (10% элементов)
+        int changeCount = size / 10;
+        Random random = new Random();
+        for (int i = 0; i < changeCount; i++) {
+            int index = random.nextInt(size);
+            startTime = System.nanoTime();
+            if (index < list.size()) {
+                Student student = list.get(index);
+                student.setPremium(random.nextInt(10000));
+                list.set(index, student);
+            }
+            endTime = System.nanoTime();
+            
+            long operationTime = endTime - startTime;
+            totalSetTime += operationTime;
+            setCount++;
+            
+            System.out.println("set, ID = " + index + ", " + operationTime);
+        }
+        
+        // Операции удаления (10% элементов)
+        for (int i = 0; i < changeCount; i++) {
+            int index = random.nextInt(list.size());
+            startTime = System.nanoTime();
+            if (index < list.size()) {
+                list.remove(index);
+            }
+            endTime = System.nanoTime();
+            
+            long operationTime = endTime - startTime;
+            totalRemoveTime += operationTime;
+            removeCount++;
+            
+            System.out.println("remove, ID = " + index + ", " + operationTime);
+        }
+        
+        // Вывод статистики
+        System.out.println("addTotalCount = " + addCount);
+        System.out.println("addTotalTime = " + totalAddTime);
+        System.out.println("addMedianTime = " + (addCount > 0 ? totalAddTime / addCount : 0));
+        
+        if (removeCount > 0) {
+            System.out.println("removeTotalCount = " + removeCount);
+            System.out.println("removeTotalTime = " + totalRemoveTime);
+            System.out.println("removeMedianTime = " + totalRemoveTime / removeCount);
+        }
+        
+        if (setCount > 0) {
+            System.out.println("setTotalCount = " + setCount);
+            System.out.println("setTotalTime = " + totalSetTime);
+            System.out.println("setMedianTime = " + totalSetTime / setCount);
+        }
+    }
+    
+    private static void testHashMap(int size) {
+        System.out.println("\n=== ТЕСТ HASHMAP РАЗМЕР " + size + " ===");
+        
+        HashMap<Integer, Student> map = new HashMap<>();
+        long startTime, endTime;
+        long totalPutTime = 0;
+        long totalRemoveTime = 0;
+        long totalReplaceTime = 0;
+        
+        int putCount = 0;
+        int removeCount = 0;
+        int replaceCount = 0;
+        
+        // Операции добавления
+        for (int i = 0; i < size; i++) {
+            startTime = System.nanoTime();
+            Student student = new Student("Студент " + i, 18 + i % 5, i % 2 == 0 ? "мужской" : "женский");
+            map.put(i, student);
+            endTime = System.nanoTime();
+            
+            long operationTime = endTime - startTime;
+            totalPutTime += operationTime;
+            putCount++;
+            
+            System.out.println("put, KEY = " + i + ", " + operationTime);
+        }
+        
+        // Операции изменения (10% элементов)
+        int changeCount = size / 10;
+        Random random = new Random();
+        for (int i = 0; i < changeCount; i++) {
+            int key = random.nextInt(size);
+            startTime = System.nanoTime();
+            if (map.containsKey(key)) {
+                Student student = map.get(key);
+                student.setPremium(random.nextInt(10000));
+                map.replace(key, student);
+            }
+            endTime = System.nanoTime();
+            
+            long operationTime = endTime - startTime;
+            totalReplaceTime += operationTime;
+            replaceCount++;
+            
+            System.out.println("replace, KEY = " + key + ", " + operationTime);
+        }
+        
+        // Операции удаления (10% элементов)
+        for (int i = 0; i < changeCount; i++) {
+            int key = random.nextInt(size);
+            startTime = System.nanoTime();
+            if (map.containsKey(key)) {
+                map.remove(key);
+            }
+            endTime = System.nanoTime();
+            
+            long operationTime = endTime - startTime;
+            totalRemoveTime += operationTime;
+            removeCount++;
+            
+            System.out.println("remove, KEY = " + key + ", " + operationTime);
+        }
+        
+        // Вывод статистики
+        System.out.println("putTotalCount = " + putCount);
+        System.out.println("putTotalTime = " + totalPutTime);
+        System.out.println("putMedianTime = " + (putCount > 0 ? totalPutTime / putCount : 0));
+        
+        if (removeCount > 0) {
+            System.out.println("removeTotalCount = " + removeCount);
+            System.out.println("removeTotalTime = " + totalRemoveTime);
+            System.out.println("removeMedianTime = " + totalRemoveTime / removeCount);
+        }
+        
+        if (replaceCount > 0) {
+            System.out.println("replaceTotalCount = " + replaceCount);
+            System.out.println("replaceTotalTime = " + totalReplaceTime);
+            System.out.println("replaceMedianTime = " + totalReplaceTime / replaceCount);
+        }
+    }
+}
+
+// Упрощенный класс для логирования ошибок
+class ErrMsgLog {
+    private ArrayList<Exception> errorList;
+    
+    public ErrMsgLog() {
+        errorList = new ArrayList<>();
+    }
+    
+    public int addError(Exception e) {
+        errorList.add(e);
+        return errorList.size();
+    }
+    
+    public int addErrorWithLog(Exception e) {
+        errorList.add(e);
+        System.err.println("ОШИБКА: " + e.getMessage());
+        return errorList.size();
+    }
+    
+    public int getErrorCount() {
+        return errorList.size();
+    }
+    
+    public void showErrorText(Exception e) {
+        System.err.println(e.getMessage());
+    }
+    
+    public Exception makeError(Exception e) {
+        addError(e);
+        return new Exception(e);
+    }
+}
