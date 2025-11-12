@@ -1,53 +1,95 @@
 import javax.swing.*;
 import java.awt.*;
-import java.awt.geom.*;
 import java.util.*;
 import java.util.List;
 
 public class PerformanceGraph extends JFrame {
-    // Данные из лабораторной работы №3
     private Map<String, List<PerformanceData>> collectionData;
-    
+    private Map<String, List<PerformanceData>> averageData;
+
     public PerformanceGraph() {
         setTitle("Графики производительности коллекций");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(800, 600);
-        
-        // Инициализация тестовых данных (в реальном приложении здесь будут данные из логов)
+        setSize(1200, 600);
+        setLayout(new GridLayout(1, 2));
+
         initializeTestData();
-        
-        // Создание компонента для рисования графиков
-        GraphComponent graphComponent = new GraphComponent();
-        add(graphComponent);
-        
+        calculateAverageData();
+
+        // Создание компонентов для рисования графиков
+        GraphComponent graphComponent1 = new GraphComponent("Общее время операций", collectionData);
+        GraphComponent graphComponent2 = new GraphComponent("Среднее время операций", averageData);
+
+        add(graphComponent1);
+        add(graphComponent2);
+
         setLocationRelativeTo(null);
     }
-    
+
     private void initializeTestData() {
         collectionData = new HashMap<>();
-        
-        // Данные для ArrayList (условные данные на основе типичного поведения)
+
         List<PerformanceData> arrayListData = Arrays.asList(
-            new PerformanceData(10, 1500, 500, 1200, 400),
-            new PerformanceData(100, 1800, 800, 1500, 700),
-            new PerformanceData(1000, 2500, 1500, 2200, 1300),
-            new PerformanceData(10000, 5000, 3500, 4500, 3000),
-            new PerformanceData(100000, 15000, 12000, 13000, 10000)
+                new PerformanceData(10, 1500, 500, 1200, 400),
+                new PerformanceData(100, 1800, 800, 1500, 700),
+                new PerformanceData(1000, 2500, 1500, 2200, 1300),
+                new PerformanceData(10000, 5000, 3500, 4500, 3000),
+                new PerformanceData(100000, 15000, 12000, 13000, 10000)
         );
-        
-        // Данные для HashMap (условные данные)
+
         List<PerformanceData> hashMapData = Arrays.asList(
-            new PerformanceData(10, 1000, 300, 900, 250),
-            new PerformanceData(100, 1200, 400, 1100, 350),
-            new PerformanceData(1000, 1500, 600, 1300, 500),
-            new PerformanceData(10000, 2000, 900, 1800, 800),
-            new PerformanceData(100000, 3000, 1500, 2800, 1300)
+                new PerformanceData(10, 1000, 300, 900, 250),
+                new PerformanceData(100, 1200, 400, 1100, 350),
+                new PerformanceData(1000, 1500, 600, 1300, 500),
+                new PerformanceData(10000, 2000, 900, 1800, 800),
+                new PerformanceData(100000, 3000, 1500, 2800, 1300)
         );
-        
+
         collectionData.put("ArrayList", arrayListData);
         collectionData.put("HashMap", hashMapData);
     }
-    
+
+    private void calculateAverageData() {
+        averageData = new HashMap<>();
+
+        // Для ArrayList
+        List<PerformanceData> arrayListAverages = new ArrayList<>();
+        List<PerformanceData> originalArrayList = collectionData.get("ArrayList");
+
+        for (PerformanceData data : originalArrayList) {
+            // Среднее время = общее время / количество элементов
+            long avgAddTime = data.totalAddTime / data.elements;
+            long avgRemoveTime = data.totalRemoveTime / data.elements;
+            // Для совместимости с существующим кодом, сохраняем те же значения в addTime и removeTime
+            arrayListAverages.add(new PerformanceData(
+                    data.elements,
+                    avgAddTime,
+                    avgRemoveTime,
+                    avgAddTime,
+                    avgRemoveTime
+            ));
+        }
+
+        // Для HashMap
+        List<PerformanceData> hashMapAverages = new ArrayList<>();
+        List<PerformanceData> originalHashMap = collectionData.get("HashMap");
+
+        for (PerformanceData data : originalHashMap) {
+            long avgAddTime = data.totalAddTime / data.elements;
+            long avgRemoveTime = data.totalRemoveTime / data.elements;
+            hashMapAverages.add(new PerformanceData(
+                    data.elements,
+                    avgAddTime,
+                    avgRemoveTime,
+                    avgAddTime,
+                    avgRemoveTime
+            ));
+        }
+
+        averageData.put("ArrayList", arrayListAverages);
+        averageData.put("HashMap", hashMapAverages);
+    }
+
     // Класс для хранения данных о производительности
     private static class PerformanceData {
         int elements;
@@ -55,9 +97,9 @@ public class PerformanceGraph extends JFrame {
         long removeTime;
         long totalAddTime;
         long totalRemoveTime;
-        
-        public PerformanceData(int elements, long addTime, long removeTime, 
-                              long totalAddTime, long totalRemoveTime) {
+
+        public PerformanceData(int elements, long addTime, long removeTime,
+                               long totalAddTime, long totalRemoveTime) {
             this.elements = elements;
             this.addTime = addTime;
             this.removeTime = removeTime;
@@ -65,205 +107,231 @@ public class PerformanceGraph extends JFrame {
             this.totalRemoveTime = totalRemoveTime;
         }
     }
-    
+
     // Компонент для рисования графиков
     private class GraphComponent extends JComponent {
         private static final int MARGIN = 80;
-        private static final int GRAPH_WIDTH = 600;
-        private static final int GRAPH_HEIGHT = 400;
-        
+        private static final int GRAPH_WIDTH = 400;
+        private static final int GRAPH_HEIGHT = 300;
+        private String title;
+        private Map<String, List<PerformanceData>> data;
+
+        public GraphComponent(String title, Map<String, List<PerformanceData>> data) {
+            this.title = title;
+            this.data = data;
+        }
+
         @Override
         public void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g;
-            
+
             // Включение сглаживания
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, 
-                              RenderingHints.VALUE_ANTIALIAS_ON);
-            
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                    RenderingHints.VALUE_ANTIALIAS_ON);
+
             // Очистка фона
             g2.setColor(Color.WHITE);
             g2.fillRect(0, 0, getWidth(), getHeight());
-            
+
             // Рисование заголовка
             drawTitle(g2);
-            
+
             // Рисование осей и сетки
             drawAxesAndGrid(g2);
-            
+
             // Рисование графиков
             drawGraphs(g2);
-            
+
             // Рисование легенды
             drawLegend(g2);
         }
-        
+
         private void drawTitle(Graphics2D g2) {
             g2.setColor(Color.BLACK);
-            g2.setFont(new Font("Arial", Font.BOLD, 16));
-            g2.drawString("Графики производительности коллекций", 250, 30);
-            
-            g2.setFont(new Font("Arial", Font.PLAIN, 12));
-            g2.drawString("Зависимость времени операций от количества элементов", 250, 50);
+            g2.setFont(new Font("Arial", Font.BOLD, 14));
+
+            // Центрируем заголовок
+            FontMetrics fm = g2.getFontMetrics();
+            int titleWidth = fm.stringWidth(title);
+            int x = (getWidth() - titleWidth) / 2;
+
+            g2.drawString(title, x, 30);
+
+            g2.setFont(new Font("Arial", Font.PLAIN, 10));
+            String subtitle = "Зависимость времени операций от количества элементов";
+            int subtitleWidth = fm.stringWidth(subtitle);
+            x = (getWidth() - subtitleWidth) / 2;
+            g2.drawString(subtitle, x, 45);
         }
-        
+
         private void drawAxesAndGrid(Graphics2D g2) {
             // Основные оси
             g2.setColor(Color.BLACK);
             g2.setStroke(new BasicStroke(2));
-            
+
             // Ось X
-            g2.drawLine(MARGIN, MARGIN + GRAPH_HEIGHT, 
-                       MARGIN + GRAPH_WIDTH, MARGIN + GRAPH_HEIGHT);
+            g2.drawLine(MARGIN, MARGIN + GRAPH_HEIGHT,
+                    MARGIN + GRAPH_WIDTH, MARGIN + GRAPH_HEIGHT);
             // Ось Y
             g2.drawLine(MARGIN, MARGIN, MARGIN, MARGIN + GRAPH_HEIGHT);
-            
+
             // Подписи осей
-            g2.drawString("Количество элементов", MARGIN + GRAPH_WIDTH/2 - 50, 
-                         MARGIN + GRAPH_HEIGHT + 40);
+            g2.drawString("Количество элементов", MARGIN + GRAPH_WIDTH/2 - 40,
+                    MARGIN + GRAPH_HEIGHT + 40);
+
             g2.rotate(-Math.PI/2);
-            g2.drawString("Время (наносекунды)", -MARGIN - GRAPH_HEIGHT/2, MARGIN - 40);
+            if (title.contains("Среднее")) {
+                g2.drawString("Среднее время (наносекунды)", -MARGIN - GRAPH_HEIGHT/2, MARGIN - 40);
+            } else {
+                g2.drawString("Время (наносекунды)", -MARGIN - GRAPH_HEIGHT/2, MARGIN - 40);
+            }
             g2.rotate(Math.PI/2);
-            
+
             // Сетка и подписи значений
             g2.setColor(Color.LIGHT_GRAY);
             g2.setStroke(new BasicStroke(1));
-            
+
             int[] sizes = {10, 100, 1000, 10000, 100000};
             for (int i = 0; i < sizes.length; i++) {
                 int x = MARGIN + (i * GRAPH_WIDTH) / (sizes.length - 1);
-                
+
                 // Вертикальные линии сетки
                 g2.drawLine(x, MARGIN, x, MARGIN + GRAPH_HEIGHT);
-                
+
                 // Подписи на оси X
                 g2.setColor(Color.BLACK);
-                g2.drawString(String.valueOf(sizes[i]), x - 10, MARGIN + GRAPH_HEIGHT + 20);
+                g2.setFont(new Font("Arial", Font.PLAIN, 9));
+                String label = String.valueOf(sizes[i]);
+                int labelWidth = g2.getFontMetrics().stringWidth(label);
+                g2.drawString(label, x - labelWidth/2, MARGIN + GRAPH_HEIGHT + 15);
                 g2.setColor(Color.LIGHT_GRAY);
             }
-            
-            // Горизонтальные линии сетки
+
+            // Горизонтальные линии сетки и подписи на оси Y
+            int maxYValue = title.contains("Среднее") ? 200 : 20000;
             for (int i = 0; i <= 10; i++) {
                 int y = MARGIN + GRAPH_HEIGHT - (i * GRAPH_HEIGHT) / 10;
                 g2.drawLine(MARGIN, y, MARGIN + GRAPH_WIDTH, y);
-                
+
                 // Подписи на оси Y
                 g2.setColor(Color.BLACK);
-                String label = String.valueOf(i * 2000);
-                g2.drawString(label, MARGIN - 30, y + 5);
+                g2.setFont(new Font("Arial", Font.PLAIN, 9));
+                String label = String.valueOf(i * (maxYValue / 10));
+                int labelWidth = g2.getFontMetrics().stringWidth(label);
+                g2.drawString(label, MARGIN - labelWidth - 5, y + 4);
                 g2.setColor(Color.LIGHT_GRAY);
             }
         }
-        
+
         private void drawGraphs(Graphics2D g2) {
             // Цвета для разных коллекций и операций
             Color[] colors = {
-                new Color(255, 0, 0),    // Красный - ArrayList добавление
-                new Color(200, 0, 0),    // Темно-красный - ArrayList удаление
-                new Color(0, 0, 255),    // Синий - HashMap добавление
-                new Color(0, 0, 200)     // Темно-синий - HashMap удаление
+                    new Color(255, 0, 0),    // Красный - ArrayList добавление
+                    new Color(200, 0, 0),    // Темно-красный - ArrayList удаление
+                    new Color(0, 0, 255),    // Синий - HashMap добавление
+                    new Color(0, 0, 200)     // Темно-синий - HashMap удаление
             };
-            
+
             // Рисование графиков для каждой коллекции
             drawCollectionGraph(g2, "ArrayList", colors[0], colors[1], 0);
             drawCollectionGraph(g2, "HashMap", colors[2], colors[3], 1);
         }
-        
-        private void drawCollectionGraph(Graphics2D g2, String collectionName, 
-                                       Color addColor, Color removeColor, int offset) {
-            List<PerformanceData> data = collectionData.get(collectionName);
-            if (data == null) return;
-            
+
+        private void drawCollectionGraph(Graphics2D g2, String collectionName,
+                                         Color addColor, Color removeColor, int offset) {
+            List<PerformanceData> dataList = data.get(collectionName);
+            if (dataList == null) return;
+
             int[] sizes = {10, 100, 1000, 10000, 100000};
-            double maxTime = 20000; // Максимальное время для масштабирования
-            
+            double maxTime = title.contains("Среднее") ? 200 : 20000;
+
             // График времени добавления
             g2.setColor(addColor);
             g2.setStroke(new BasicStroke(2));
-            drawLineGraph(g2, data, sizes, maxTime, true, offset * 10);
-            
+            drawLineGraph(g2, dataList, sizes, maxTime, true, offset * 5);
+
             // График времени удаления
             g2.setColor(removeColor);
-            g2.setStroke(new BasicStroke(2, BasicStroke.CAP_ROUND, 
-                                       BasicStroke.JOIN_ROUND, 1.0f, 
-                                       new float[]{5.0f}, 0.0f)); // Пунктирная линия
-            drawLineGraph(g2, data, sizes, maxTime, false, offset * 10);
+            g2.setStroke(new BasicStroke(2, BasicStroke.CAP_ROUND,
+                    BasicStroke.JOIN_ROUND, 1.0f,
+                    new float[]{5.0f}, 0.0f)); // Пунктирная линия
+            drawLineGraph(g2, dataList, sizes, maxTime, false, offset * 5);
         }
-        
-        private void drawLineGraph(Graphics2D g2, List<PerformanceData> data, 
-                                 int[] sizes, double maxTime, boolean isAdd, int yOffset) {
-            for (int i = 0; i < data.size() - 1; i++) {
-                PerformanceData current = data.get(i);
-                PerformanceData next = data.get(i + 1);
-                
+
+        private void drawLineGraph(Graphics2D g2, List<PerformanceData> dataList,
+                                   int[] sizes, double maxTime, boolean isAdd, int yOffset) {
+            for (int i = 0; i < dataList.size() - 1; i++) {
+                PerformanceData current = dataList.get(i);
+                PerformanceData next = dataList.get(i + 1);
+
                 long currentTime = isAdd ? current.addTime : current.removeTime;
                 long nextTime = isAdd ? next.addTime : next.removeTime;
-                
+
                 int x1 = MARGIN + (i * GRAPH_WIDTH) / (sizes.length - 1);
-                int y1 = (int)(MARGIN + GRAPH_HEIGHT - 
-                             (currentTime * GRAPH_HEIGHT) / maxTime) + yOffset;
-                
+                int y1 = (int)(MARGIN + GRAPH_HEIGHT -
+                        (currentTime * GRAPH_HEIGHT) / maxTime) + yOffset;
+
                 int x2 = MARGIN + ((i + 1) * GRAPH_WIDTH) / (sizes.length - 1);
-                int y2 = (int)(MARGIN + GRAPH_HEIGHT - 
-                             (nextTime * GRAPH_HEIGHT) / maxTime) + yOffset;
-                
+                int y2 = (int)(MARGIN + GRAPH_HEIGHT -
+                        (nextTime * GRAPH_HEIGHT) / maxTime) + yOffset;
+
                 g2.drawLine(x1, y1, x2, y2);
-                
+
                 // Точки на графике
                 g2.fillOval(x1 - 3, y1 - 3, 6, 6);
-                if (i == data.size() - 2) {
+                if (i == dataList.size() - 2) {
                     g2.fillOval(x2 - 3, y2 - 3, 6, 6);
                 }
             }
         }
-        
+
         private void drawLegend(Graphics2D g2) {
-            int legendX = MARGIN + GRAPH_WIDTH + 20;
+            int legendX = MARGIN + GRAPH_WIDTH + 10;
             int legendY = MARGIN;
-            
+
             g2.setColor(Color.BLACK);
-            g2.setFont(new Font("Arial", Font.BOLD, 12));
+            g2.setFont(new Font("Arial", Font.BOLD, 10));
             g2.drawString("Легенда:", legendX, legendY);
-            
+
             String[] labels = {
-                "ArrayList - добавление",
-                "ArrayList - удаление", 
-                "HashMap - добавление",
-                "HashMap - удаление"
+                    "ArrayList - добавление",
+                    "ArrayList - удаление",
+                    "HashMap - добавление",
+                    "HashMap - удаление"
             };
-            
+
             Color[] colors = {
-                new Color(255, 0, 0),
-                new Color(200, 0, 0),
-                new Color(0, 0, 255),
-                new Color(0, 0, 200)
+                    new Color(255, 0, 0),
+                    new Color(200, 0, 0),
+                    new Color(0, 0, 255),
+                    new Color(0, 0, 200)
             };
-            
+
             for (int i = 0; i < labels.length; i++) {
                 g2.setColor(colors[i]);
                 if (i % 2 == 1) { // Пунктир для операций удаления
-                    g2.setStroke(new BasicStroke(2, BasicStroke.CAP_ROUND, 
-                                               BasicStroke.JOIN_ROUND, 1.0f, 
-                                               new float[]{5.0f}, 0.0f));
+                    g2.setStroke(new BasicStroke(2, BasicStroke.CAP_ROUND,
+                            BasicStroke.JOIN_ROUND, 1.0f,
+                            new float[]{5.0f}, 0.0f));
                 } else {
                     g2.setStroke(new BasicStroke(2));
                 }
-                
-                int y = legendY + 30 + i * 25;
-                g2.drawLine(legendX, y, legendX + 20, y);
-                g2.fillOval(legendX - 2, y - 2, 4, 4);
-                g2.fillOval(legendX + 18, y - 2, 4, 4);
-                
+
+                int y = legendY + 20 + i * 20;
+                g2.drawLine(legendX, y, legendX + 15, y);
+
                 g2.setColor(Color.BLACK);
-                g2.drawString(labels[i], legendX + 30, y + 5);
+                g2.setFont(new Font("Arial", Font.PLAIN, 9));
+                g2.drawString(labels[i], legendX + 20, y + 4);
             }
         }
-        
+
         @Override
         public Dimension getPreferredSize() {
-            return new Dimension(800, 600);
+            return new Dimension(600, 500);
         }
     }
-    
+
     public static void main(String[] args) {
         // Запуск в потоке диспетчеризации событий
         EventQueue.invokeLater(new Runnable() {
