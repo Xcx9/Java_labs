@@ -1,0 +1,150 @@
+import javax.swing.*;
+import java.awt.*;
+
+public class Draw
+{
+
+    public static void main(String[] args)
+    {
+        Drawer_components drawer_components = new Drawer_components();
+
+        SwingUtilities.invokeLater(() -> {
+            JFrame frame = new JFrame("Кнопки справа");
+
+            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            frame.setSize(500, 500);
+
+            // Создаем панель с BoxLayout по оси X
+            JPanel buttonPanel = new JPanel();
+            JPanel drawerPanel = new JPanel();
+
+            buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.Y_AXIS));
+            buttonPanel.setBackground(Color.gray);
+            drawerPanel.setBackground(Color.darkGray);
+            // Добавляем "клей" который растягивается и толкает кнопки вправо
+            buttonPanel.add(Box.createHorizontalGlue());
+            Dimension buttonSize = new Dimension(120, 40);
+            Font fontSize = new Font("Arial", Font.BOLD, 14);
+
+            // Создаем кнопки
+            JButton o = new JButton("O");
+            JButton c = new JButton("C");
+            JButton h = new JButton("H");
+
+            o.setPreferredSize(buttonSize);
+            o.setFont(fontSize);
+            c.setPreferredSize(buttonSize);
+            c.setFont(fontSize);
+            h.setPreferredSize(buttonSize);
+            h.setFont(fontSize);
+
+            o.setSize(100, 100);
+            c.setSize(100, 100);
+            h.setSize(100, 100);
+
+            // Добавляем кнопки
+            buttonPanel.add(o);
+            buttonPanel.add(Box.createVerticalStrut(5)); // Небольшой отступ
+            buttonPanel.add(c);
+            buttonPanel.add(Box.createVerticalStrut(5)); // Небольшой отступ
+            buttonPanel.add(h);
+
+            // Добавляем панель с кнопками в основное окно
+            frame.setLayout(new BorderLayout());
+            frame.add(buttonPanel, BorderLayout.EAST); // Или BorderLayout.NORTH/CENTER
+            frame.add(drawerPanel, BorderLayout.CENTER); // Или BorderLayout.NORTH/CENTER
+
+            o.addActionListener(e ->{drawer_components.draw_O(drawerPanel.getGraphics());});
+            c.addActionListener(e ->{drawer_components.draw_C(drawerPanel.getGraphics());});
+            h.addActionListener(e ->{drawer_components.draw_H(drawerPanel.getGraphics());});
+
+            frame.setVisible(true);
+        });
+
+        /*EventQueue.invokeLater(new Runnable()
+        {
+            public void run()
+            {
+                JFrame frame = new JFrame("Molecule Constructor");
+                JButton O = new JButton("O");
+                JButton C = new JButton("C");
+                JButton H = new JButton("H");
+                JButton bond = new JButton("bond");
+                frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+                //Размеры кнопок
+                O.setSize(50, 20);
+                C.setSize(50, 20);
+                H.setSize(50, 20);
+                //Добавление кнопок
+                frame.add(O);
+                frame.add(C);
+                frame.add(H);
+
+
+
+                frame.setSize(500, 500);
+
+
+                frame.setVisible(true);
+            }
+        });*/
+    }
+
+}
+
+
+class Drawer_components extends JComponent
+{
+    Atom atom_manager;
+    Bond bond_manager;
+
+    public static final int MES_X = 20;
+    public static final int MES_Y = 20;
+    ///Определяем координаты левой верхней точки прямоугольника содержащего
+    ///компонент относительно левой верхней точки фрейма
+    private static final int DEF_WIDTH = 200;
+    private static final int DEF_HEIGHT = 100;
+
+
+    public Drawer_components() {
+        // Сначала создаем один объект
+        atom_manager = new Atom();
+        // Затем создаем второй и связываем их
+        bond_manager = new Bond(atom_manager);
+        atom_manager.setBondManager(bond_manager);
+    }
+
+    public void draw_O(Graphics g)
+    {
+        g.drawOval(50, 50, 100, 100); // Контур
+        g.setColor(Color.YELLOW);
+        g.fillOval(50, 50, 100, 100); // Залитый
+        atom_manager.create_O();
+    }
+
+    public void draw_H(Graphics g)
+    {
+        g.drawOval(30, 30, 40, 40); // Контур
+        g.setColor(Color.CYAN);
+        g.fillOval(30, 30, 40, 40); // Залитый
+        atom_manager.create_H();
+    }
+
+    public void draw_C(Graphics g)
+    {
+        g.drawOval(50, 50, 100, 100); // Контур
+        g.setColor(Color.BLUE);
+        g.fillOval(50, 50, 100, 100); // Залитый
+        atom_manager.create_C();
+    }
+
+    public void draw_bond(String atom1, String atom2)
+    {
+        bond_manager.create_bond(atom1, atom2);
+    }
+
+    public Dimension getPreferredSize() {
+        return new Dimension(DEF_WIDTH, DEF_HEIGHT);
+    //Метод возвращает размеры компонента
+    }
+}
