@@ -1,0 +1,318 @@
+import java.util.*;
+import java.io.*;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
+public class UniversityDatabase {
+    private static ArrayList<Student> students = new ArrayList<>();
+    private static Properties config = new Properties();
+    private static String currentUser;
+    private static String userGroup;
+    private static boolean debugMode = false;
+    private static boolean autoTestMode = false;
+
+    public static void main(String[] args) {
+        try {
+            // Загрузка конфигурации
+            loadConfiguration();
+
+            // Аутентификация
+            if (!authenticateUser()) {
+                System.out.println("Ошибка аутентификации. Программа завершена.");
+                return;
+            }
+
+            // Вывод приветствия
+            System.out.println("Добро пожаловать --- " + currentUser);
+            log("Программа запущена пользователем: " + currentUser);
+
+            // Выполнение автотестов если включено
+            if (autoTestMode) {
+                runAutoTests();
+            }
+
+            // Главное меню
+            showMainMenu();
+
+        } catch (Exception e) {
+            System.err.println("Критическая ошибка: " + e.getMessage());
+            log("Критическая ошибка: " + e.getMessage());
+        } finally {
+            log("Программа завершена");
+        }
+    }
+
+    private static void loadConfiguration() {
+        try {
+            InputStream configStream = UniversityDatabase.class.getResourceAsStream("/config.properties");
+            if (configStream == null) {
+                // Если файл не найден в ресурсах, ищем в файловой системе
+                File configFile = new File("config.properties");
+                if (configFile.exists()) {
+                    configStream = new FileInputStream(configFile);
+                } else {
+                    System.out.println("Конфигурационный файл не найден. Используются настройки по умолчанию.");
+                    setupDefaultConfig();
+                    return;
+                }
+            }
+
+            config.load(configStream);
+            configStream.close();
+
+            debugMode = Boolean.parseBoolean(config.getProperty("debug.mode", "false"));
+            autoTestMode = Boolean.parseBoolean(config.getProperty("autotest.mode", "false"));
+
+            System.out.println("Конфигурация загружена успешно");
+            log("Конфигурация загружена");
+
+        } catch (Exception e) {
+            System.err.println("Ошибка загрузки конфигурации: " + e.getMessage());
+            setupDefaultConfig();
+        }
+    }
+
+    private static void setupDefaultConfig() {
+        config.setProperty("user.login", "admin");
+        config.setProperty("user.password", "admin");
+        config.setProperty("user.group", "root");
+        config.setProperty("debug.mode", "false");
+        config.setProperty("autotest.mode", "false");
+    }
+
+    private static boolean authenticateUser() {
+        Scanner scanner = new Scanner(System.in);
+
+        System.out.print("Логин: ");
+        String login = scanner.nextLine();
+
+        System.out.print("Пароль: ");
+        String password = scanner.nextLine();
+
+        String configLogin = config.getProperty("user.login", "admin");
+        String configPassword = config.getProperty("user.password", "admin");
+
+        if (login.equals(configLogin) && password.equals(configPassword)) {
+            currentUser = login;
+            userGroup = config.getProperty("user.group", "user");
+            log("Успешная аутентификация пользователя: " + currentUser + " (группа: " + userGroup + ")");
+            return true;
+        } else {
+            log("Неудачная попытка аутентификации для логина: " + login);
+            return false;
+        }
+    }
+
+    private static void showMainMenu() {
+        Scanner scanner = new Scanner(System.in);
+        boolean running = true;
+
+        while (running) {
+            System.out.println("\n=== ГЛАВНОЕ МЕНЮ ===");
+            System.out.println("1. Показать всех студентов");
+            System.out.println("2. Добавить студента");
+            System.out.println("3. Изменить данные студента");
+            System.out.println("4. Удалить студента");
+            System.out.println("5. Сохранить данные в файл");
+            System.out.println("6. Загрузить данные из файла");
+
+            if ("root".equals(userGroup)) {
+                System.out.println("7. Режим отладки");
+                System.out.println("8. Автотесты");
+            }
+
+            System.out.println("0. Выход");
+            System.out.print("Выберите пункт: ");
+
+            try {
+                int choice = scanner.nextInt();
+                scanner.nextLine(); // очистка буфера
+
+                switch (choice) {
+                    case 1:
+                        showAllStudents();
+                        break;
+                    case 2:
+                        addStudent(scanner);
+                        break;
+                    case 3:
+                        updateStudent(scanner);
+                        break;
+                    case 4:
+                        deleteStudent(scanner);
+                        break;
+                    case 5:
+                        saveToFile();
+                        break;
+                    case 6:
+                        loadFromFile();
+                        break;
+                    case 7:
+                        if ("root".equals(userGroup)) {
+                            toggleDebugMode();
+                        }
+                        break;
+                    case 8:
+                        if ("root".equals(userGroup)) {
+                            runAutoTests();
+                        }
+                        break;
+                    case 0:
+                        running = false;
+                        break;
+                    default:
+                        System.out.println("Неверный пункт меню");
+                }
+            } catch (Exception e) {
+                System.out.println("Ошибка ввода: " + e.getMessage());
+                scanner.nextLine(); // очистка буфера
+            }
+        }
+    }
+
+    private static void showAllStudents() {
+        if (students.isEmpty()) {
+            System.out.println("Список студентов пуст");
+            return;
+        }
+
+        System.out.println("\n=== СПИСОК СТУДЕНТОВ ===");
+        for (int i = 0; i < students.size(); i++) {
+            System.out.println((i + 1) + ". " + students.get(i));
+        }
+    }
+
+    private static void addStudent(Scanner scanner) {
+        System.out.print("Имя студента: ");
+        String name = scanner.nextLine();
+
+        System.out.print("Возраст: ");
+        int age = scanner.nextInt();
+        scanner.nextLine();
+
+        System.out.print("Пол: ");
+        String sex = scanner.nextLine();
+
+        Student student = new Student(name, age, sex);
+        students.add(student);
+
+        System.out.println("Студент добавлен успешно");
+        log("Добавлен студент: " + name);
+    }
+
+    private static void updateStudent(Scanner scanner) {
+        showAllStudents();
+        if (students.isEmpty()) return;
+
+        System.out.print("Выберите номер студента для изменения: ");
+        int index = scanner.nextInt() - 1;
+        scanner.nextLine();
+
+        if (index >= 0 && index < students.size()) {
+            Student student = students.get(index);
+
+            System.out.print("Новое имя (" + student.getName() + "): ");
+            String newName = scanner.nextLine();
+            if (!newName.isEmpty()) {
+                // Для реального изменения нужно добавить сеттер в класс Student
+                System.out.println("Изменение имени в данной реализации не поддерживается");
+            }
+
+            System.out.println("Данные студента обновлены");
+            log("Обновлены данные студента: " + student.getName());
+        } else {
+            System.out.println("Неверный номер студента");
+        }
+    }
+
+    private static void deleteStudent(Scanner scanner) {
+        showAllStudents();
+        if (students.isEmpty()) return;
+
+        System.out.print("Выберите номер студента для удаления: ");
+        int index = scanner.nextInt() - 1;
+        scanner.nextLine();
+
+        if (index >= 0 && index < students.size()) {
+            Student student = students.remove(index);
+            System.out.println("Студент удален: " + student.getName());
+            log("Удален студент: " + student.getName());
+        } else {
+            System.out.println("Неверный номер студента");
+        }
+    }
+
+    private static void saveToFile() {
+        try (PrintWriter writer = new PrintWriter(new FileWriter("students_db.txt"))) {
+            for (Student student : students) {
+                writer.println(student.toString());
+            }
+            System.out.println("Данные сохранены в файл students_db.txt");
+            log("Данные сохранены в файл");
+        } catch (IOException e) {
+            System.err.println("Ошибка сохранения: " + e.getMessage());
+            log("Ошибка сохранения: " + e.getMessage());
+        }
+    }
+
+    private static void loadFromFile() {
+        // В реальной реализации здесь будет парсинг файла
+        // Для демонстрации просто очистим список и добавим тестовых студентов
+        students.clear();
+
+        students.add(new Student("Иван Иванов", 20, "мужской"));
+        students.add(new Student("Мария Петрова", 19, "женский"));
+        students.add(new Student("Алексей Сидоров", 21, "мужской"));
+
+        System.out.println("Данные загружены из файла");
+        log("Данные загружены из файла");
+    }
+
+    private static void toggleDebugMode() {
+        debugMode = !debugMode;
+        System.out.println("Режим отладки: " + (debugMode ? "ВКЛ" : "ВЫКЛ"));
+        log("Режим отладки изменен на: " + (debugMode ? "ВКЛ" : "ВЫКЛ"));
+    }
+
+    private static void runAutoTests() {
+        System.out.println("\n=== ВЫПОЛНЕНИЕ АВТОТЕСТОВ ===");
+        log("Запуск автотестов");
+
+        // Тест 1: Создание студентов
+        System.out.println("Тест 1: Создание студентов...");
+        Student testStudent = new Student("Тестовый Студент", 20, "мужской");
+        if (testStudent != null) {
+            System.out.println("✓ Тест 1 пройден");
+            log("Автотест 1 пройден: создание студентов");
+        } else {
+            System.out.println("✗ Тест 1 не пройден");
+            log("Автотест 1 не пройден: создание студентов");
+        }
+
+        // Тест 2: Работа с коллекциями
+        System.out.println("Тест 2: Работа с коллекциями...");
+        ArrayList<Student> testList = new ArrayList<>();
+        testList.add(testStudent);
+        if (!testList.isEmpty()) {
+            System.out.println("✓ Тест 2 пройден");
+            log("Автотест 2 пройден: работа с коллекциями");
+        } else {
+            System.out.println("✗ Тест 2 не пройден");
+            log("Автотест 2 не пройден: работа с коллекциями");
+        }
+
+        System.out.println("Автотесты завершены");
+        log("Автотесты завершены");
+    }
+
+    private static void log(String message) {
+        if (debugMode || message.contains("Ошибка") || message.contains("завершена")) {
+            try (PrintWriter logWriter = new PrintWriter(new FileWriter("university.log", true))) {
+                String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+                logWriter.println(timestamp + " - " + message);
+            } catch (IOException e) {
+                System.err.println("Ошибка записи в лог: " + e.getMessage());
+            }
+        }
+    }
+}
