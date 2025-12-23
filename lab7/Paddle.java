@@ -1,6 +1,10 @@
+package lab7;
+
+import java.awt.*;
+
 class Paddle {
     private int x, y, width, height;
-    private int dy = 0;
+    private int speed = 7;
 
     public Paddle(int x, int y, int width, int height) {
         this.x = x;
@@ -9,12 +13,15 @@ class Paddle {
         this.height = height;
     }
 
-    public void moveUp() { dy = -5; }
-    public void moveDown() { dy = 5; }
-    public void stop() { dy = 0; }
+    public void moveUp() {
+        y -= speed;
+    }
+
+    public void moveDown() {
+        y += speed;
+    }
 
     public void update() {
-        y += dy;
         if (y < 0) y = 0;
         if (y + height > 600) y = 600 - height;
     }
@@ -27,4 +34,7 @@ class Paddle {
     public Rectangle getBounds() {
         return new Rectangle(x, y, width, height);
     }
+
+    public int getX() { return x; }
+    public int getWidth() { return width; }
 }
